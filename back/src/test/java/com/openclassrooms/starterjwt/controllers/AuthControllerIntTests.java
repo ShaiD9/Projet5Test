@@ -152,5 +152,25 @@ public class AuthControllerIntTests {
             verify(userRepository, times(1)).existsByEmail(email);
             verify(userRepository, never()).save(user);
         }
+
+        @Test
+        public void shouldNotLoginUser() throws Exception {
+            LoginRequest loginRequest = new LoginRequest();
+            loginRequest.setEmail(email);
+            loginRequest.setPassword("wrongpassword");
+
+            // Simuler l'échec d'authentification
+            when(authenticationManager.authenticate(any()))
+                    .thenThrow(new org.springframework.security.authentication.BadCredentialsException("Bad credentials"));
+
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(loginRequest))
+                            .with(csrf()))
+                    .andExpect(status().isUnauthorized());
+
+            verify(authenticationManager, times(1)).authenticate(any());
+            verify(jwtUtils, never()).generateJwtToken(any());
+        }
     }
 }
